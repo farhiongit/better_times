@@ -480,9 +480,7 @@ tm_setdatefromstring (struct tm *tm, const char *buf, const char *rep, tm_time_p
 
   if (year >= 0 && year < 100)
   {
-    time_t now;
-
-    time (&now);                // time syscall
+    time_t now = time (0);      // time syscall
     struct tm tm_now;
     tzset ();
     localtime_r (&now, &tm_now);        // time syscall
@@ -1061,13 +1059,51 @@ tm_getsecondsofday (struct tm date)
 tm_status
 tm_addseconds (struct tm *date, long int nbSecs)
 {
-  date->tm_sec += nbSecs;
-  // Does not modify date->tm_isdst to a negative value, so that absolute number of seconds is added:
-  // the value specified in the tm_isdst field informs whether or not daylight saving time (DST) is in effect for the time supplied in the tm structure:
-  // - a positive value means DST is in effect; zero means that DST is not in effect.
-  // - a negative value means using timezone information and system databases to attempt to determine whether DST is in effect at the specified time.
+  time_t t0;
+  if (tm_normalize (date, &t0) == TM_ERROR)
+    return TM_ERROR;
+  t0 += nbSecs;
 
-  return tm_normalize (date, 0);
+  if (tm_isdefinedinwallclock (*date, TM_REF_UTC))
+  {
+    if ((gmtime_r (&t0, date)   // time syscall
+         && date->tm_year + 1900 + 1 > date->tm_year))
+    {
+      date->tm_zone = tm_getregisteredwallclock (TM_REF_UTC, 0);
+      return TM_OK;
+    }
+    else
+    {
+      errno = EOVERFLOW;
+      return TM_ERROR;
+    }
+  }
+  else
+  {
+    const char *rep = tm_getregisteredwallclock (date->tm_zone, 0);
+    pthread_mutex_lock (&tzset_mutex);
+    const char *old_tz;
+    if (tm_tzset (rep, &old_tz) == TM_ERROR)
+    {
+      pthread_mutex_unlock (&tzset_mutex);
+      return TM_ERROR;
+    }
+    if ((localtime_r (&t0, date)        // time syscall
+         && date->tm_year + 1900 + 1 > date->tm_year))
+    {
+      date->tm_zone = rep;
+      tm_tzunset (old_tz);
+      pthread_mutex_unlock (&tzset_mutex);
+      return TM_OK;
+    }
+    else
+    {
+      tm_tzunset (old_tz);
+      pthread_mutex_unlock (&tzset_mutex);
+      errno = EOVERFLOW;
+      return TM_ERROR;
+    }
+  }
 }
 
 tm_status
@@ -1122,9 +1158,12 @@ long int
 tm_diffseconds (struct tm debut, struct tm fin)
 {
   time_t d, f;
-  tm_normalize (&fin, &f);
-  tm_normalize (&debut, &d);    // Both dates have been normalized at creation, errno should not be set.
-  return f - d;
+  if (tm_normalize (&fin, &f) == TM_OK && tm_normalize (&debut, &d) == TM_OK)
+    return f - d;
+
+  errno = EINVAL;               // Both dates have been normalized at creation, errno should not be set.
+  return (time_t) - 1;
+
 }
 
 int
@@ -1288,75 +1327,21 @@ time_t
 tm_tobinary (struct tm date)
 {
   struct tm dt0;
-  dt0.tm_year = 1970 - 1900;
-  dt0.tm_mon = TM_JANUARY - 1;
-  dt0.tm_mday = 1;
-  dt0.tm_hour = 0;
-  dt0.tm_min = 0;
-  dt0.tm_sec = 0;
-  dt0.tm_isdst = -1;
-  dt0.tm_zone = tm_getregisteredwallclock (TM_REF_UTC, 0);
-
-  time_t t0;
-  tm_normalize (&dt0, &t0);
-  time_t t;
-  tm_normalize (&date, &t);
-  return t - t0;                // from the epoch
+  tm_set (&dt0, 1970, TM_JANUARY, 1, 0, 0, 0, TM_REF_UTC);      // Epoch, 1970-01-01 00:00:00 +0000 (UTC).
+  return tm_diffseconds (dt0, date);
 }
 
 tm_status
 tm_frombinary (struct tm *date, time_t binary, const char *rep)
 {
+  if (rep == TM_REF_UNCHANGED)
+    rep = tm_getwallclock (*date);
+
   struct tm dt0;
-  dt0.tm_year = 1970 - 1900;
-  dt0.tm_mon = TM_JANUARY - 1;
-  dt0.tm_mday = 1;
-  dt0.tm_hour = 0;
-  dt0.tm_min = 0;
-  dt0.tm_sec = 0;
-  dt0.tm_isdst = -1;
-  dt0.tm_zone = tm_getregisteredwallclock (TM_REF_UTC, 0);
-
-  time_t t0;
-  if (tm_normalize (&dt0, &t0) == TM_ERROR)
-    return TM_ERROR;
-  binary += t0;                 // from the epoch
-
-  if (tm_isutctimezone (rep))
-  {
-    if ((gmtime_r (&binary, date)       // time syscall
-         && date->tm_year + 1900 + 1 > date->tm_year))
-    {
-      date->tm_zone = tm_getregisteredwallclock (TM_REF_UTC, 0);
-      return TM_OK;
-
-    }
-    else
-      return TM_ERROR;
-  }
+  tm_set (&dt0, 1970, TM_JANUARY, 1, 0, 0, 0, TM_REF_UTC);      // Epoch, 1970-01-01 00:00:00 +0000 (UTC).
+  *date = dt0;
+  if (tm_addseconds (date, binary) == TM_OK && tm_changetowallclock (date, rep) == TM_OK)
+    return TM_OK;
   else
-  {
-    rep = tm_getregisteredwallclock (rep, 1);
-    pthread_mutex_lock (&tzset_mutex);
-    const char *old_tz;
-    if (tm_tzset (rep, &old_tz) == TM_ERROR)
-    {
-      pthread_mutex_unlock (&tzset_mutex);
-      return TM_ERROR;
-    }
-    if ((localtime_r (&binary, date)    // time syscall
-         && date->tm_year + 1900 + 1 > date->tm_year))
-    {
-      date->tm_zone = rep;
-      tm_tzunset (old_tz);
-      pthread_mutex_unlock (&tzset_mutex);
-      return TM_OK;
-    }
-    else
-    {
-      tm_tzunset (old_tz);
-      pthread_mutex_unlock (&tzset_mutex);
-      return TM_ERROR;
-    }
-  }
+    return TM_ERROR;
 }

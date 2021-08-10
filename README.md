@@ -356,6 +356,14 @@ The resullting value of `dt` will be represented:
 
 ## Arithmetics
 
+## Assignment
+
+An instant `dta` (of type `struct tm`) can be copied into another one with the assignment operator `=`:
+
+```c
+struct tm dtb = dta;
+```
+
 ### Adding a duration to an instant
 ```c
 tm_status tm_addseconds (struct tm *date, long int nbSecs)
@@ -448,6 +456,15 @@ tm_status tm_trimtime (struct tm *date)
 
 The following functions take two dates as arguments and compare their calendar properties.
 
+```c
+int tm_diffcalendardays (struct tm start, struct tm stop);
+int tm_diffcalendarmonths (struct tm start, struct tm stop);
+int tm_diffcalendaryears (struct tm start, struct tm stop);
+int tm_diffisoyears (struct tm start, struct tm stop);
+```
+
+Returned values:
+
   - `tm_diffcalendaryears`: number of changes of years between the two dates
   - `tm_diffisoyears`: number of changes of iso years between the two dates
   - `tm_diffcalendarmonths`: number of changes of months between the two dates
@@ -502,8 +519,48 @@ tm_status tm_frombinary (struct tm *dt, time_t binary, , [const char *wallclock 
 ```
 Instants can be persisted in databases using those two functions for storing (`tm_tobinary`) and retrieving (`tm_frombinary`) in a format that is independent of timezone and therefore suitable for internationalization.
 
-  - `tm_tobinary`: transforms into a value for database storage or data transfer
-  - `tm_frombinary`: retrieves from a value stored in database storage received from data transfer. The retrieved value can then be represented in a chosen wallclock referential. 
+  - `tm_tobinary`: transforms into a value for database storage or data transfer (the returned value is the number of seconds elapsed since the Epoch, 1970-01-01 00:00:00, UTC)
+  - `tm_frombinary`: retrieves from a value stored in database storage received from data transfer. The retrieved value can then be represented in a chosen wallclock referential.
+
+## Dates only
+
+Additional functions are available to manage calendar dates (without time of day):
+
+```c
+tm_status dt_set (struct tm *dt)
+tm_status dt_set (struct tm *dt, int year, tm_month month, int day)
+
+tm_status dt_tostring (struct tm dt, size_t max, char *str);
+tm_status dt_setfromstring (struct tm *dt, const char *text)
+
+int dt_getyear (struct tm date) // On 4 digits
+tm_month dt_getmonth (struct tm date)
+int dt_getday (struct tm date)
+int dt_getdayofyear (struct tm date)  // Starting from 1
+tm_dayofweek dt_getdayofweek (struct tm date)
+int dt_getisoweek (struct tm date)
+int dt_getisoyear (struct tm date)
+
+tm_status dt_adddays (struct tm *date, int nbDays)
+tm_status dt_addmonths (struct tm *date, int nbMonths)
+tm_status dt_addyears (struct tm *date, int nbYears)
+
+int dt_equals (struct tm a, struct tm b)
+int dt_compare (const void *dta, const void *dtb)
+
+int dt_diffdays (struct tm start, struct tm stop)
+int dt_diffweeks (struct tm start, struct tm stop, [int *days])
+int dt_diffmonths (struct tm start, struct tm stop, [int *days])
+int dt_diffyears (struct tm start, struct tm stop, [int *months, int *days])
+
+int dt_diffcalendardays (struct tm start, struct tm stop);
+int dt_diffcalendarmonths (struct tm start, struct tm stop);
+int dt_diffcalendaryears (struct tm start, struct tm stop);
+int dt_diffisoyears (struct tm start, struct tm stop);
+
+int dt_tobinary (struct tm date)
+tm_status dt_frombinary(struct tm *date, int binary)
+```
 
 # Unit testing
 

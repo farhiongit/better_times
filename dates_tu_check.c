@@ -164,6 +164,10 @@ START_TEST (tu_local)
   struct tm dt;
 
   ck_assert (tm_set (&dt, 2010, 5, 30, 17, 55, 21) != TM_ERROR);
+  struct tm aDate = dt;
+  tm_addyears (&aDate, -1);
+  tm_addseconds (&aDate, 60 * 60 * 24 * 365);
+  ck_assert (tm_equals (aDate, dt));
   ck_assert (tm_set (&dt, 2010, 4, 31, 17, 55, 21) == TM_ERROR);        // Does not exist
   ck_assert (tm_set (&dt, 2015, 2, 29, 17, 55, 21) == TM_ERROR);
   ck_assert (tm_set (&dt, 2016, 2, 29, 17, 55, 21) != TM_ERROR);
@@ -184,6 +188,10 @@ START_TEST (tu_utc)
   struct tm dt;
 
   ck_assert (tm_set (&dt, 1969, 12, 31, 23, 59, 59, TM_REF_UTC) != TM_ERROR);
+  struct tm aDate = dt;
+  tm_addyears (&aDate, -1);
+  tm_addseconds (&aDate, 60 * 60 * 24 * 365);
+  ck_assert (tm_equals (aDate, dt));
   ck_assert (tm_set (&dt, 2010, 5, 30, 17, 55, 21, TM_REF_UTC) != TM_ERROR);
   ck_assert (tm_set (&dt, 2010, 4, 31, 17, 55, 21, TM_REF_UTC) == TM_ERROR);    // Does not exist
   ck_assert (tm_set (&dt, 2015, 2, 29, 17, 55, 21, TM_REF_UTC) == TM_ERROR);    // Does not exist
@@ -515,6 +523,11 @@ START_TEST (tu_dst_winter)
   ck_assert (tm_gethour (aDate) == 1);
   int utcoffset = tm_getutcoffset (aDate);
   ck_assert (tm_getsecondsofday (aDate) == 3600 + 1800);
+
+  struct tm bDate = aDate;
+  tm_addyears (&bDate, -1);
+  tm_addseconds (&bDate, 60 * 60 * 24 * 365);
+  ck_assert (tm_equals (aDate, bDate));
 
   tm_addseconds (&aDate, 3600);
   ck_assert (tm_isdaylightsavingtimeineffect (aDate));
