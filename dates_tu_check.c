@@ -1114,12 +1114,12 @@ START_TEST (tu_date)
 {
   struct tm date;
   ck_assert (dt_set (&date) == TM_OK);
-  tm_print (date, __LINE__);
+  ck_assert (dt_set (&date, TM_REF_UTC) == TM_OK);
+  ck_assert (dt_set (&date, "America/Fortaleza") == TM_OK);
   ck_assert (dt_set (&date, 2020, 2, 29) == TM_OK);
   ck_assert (dt_set (&date, 2020, 2, 30) == TM_ERROR);
-  ck_assert (dt_setfromstring (&date, "2021-03-16") == TM_OK);
-  ck_assert (dt_setfromstring (&date, "20210416") == TM_OK);
-  tm_print (date, __LINE__);    // 2021-04-16
+  ck_assert (dt_fromstring (&date, "2021-03-16") == TM_OK);
+  ck_assert (dt_fromstring (&date, "20210416") == TM_OK);
   ck_assert (dt_getyear (date) == 2021);
   ck_assert (dt_getmonth (date) == TM_APRIL);
   ck_assert (dt_getday (date) == 16);
@@ -1136,7 +1136,6 @@ START_TEST (tu_date)
   ck_assert (dt_getmonth (control) == TM_SEPTEMBER);
   ck_assert (dt_getday (control) == 19);
   ck_assert (dt_tostring (control, 0, 0));
-  tm_print (control, __LINE__); // 2032-09-19
   ck_assert (dt_compare (&date, &control) < 0);
   ck_assert (dt_equals (date, control) == 0);
   ck_assert (dt_diffcalendaryears (date, control) == 11);

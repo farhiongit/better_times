@@ -735,6 +735,16 @@ dt_tostring (struct tm dt, size_t max, char *str)
   return tm_tostring_fmt (dt, max, str, "%x");
 }
 
+tm_status
+dt_make_ir (struct tm *date, const char* wc)
+{
+  if (tm_make_ir (date, TM_TODAY, wc) == TM_ERROR)
+    return TM_ERROR;
+
+  date->tm_zone = tm_getregisteredwallclock (TM_REF_UTC, 0);
+  return TM_OK;
+}
+
 /*****************************************************
 *   CONVERTERS                                       *
 **************************************************** */

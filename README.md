@@ -145,8 +145,8 @@ The use of this function `tm_set` is compulsory, as well as easier than dealing 
 
 `tm_set` accepts two signatures:
  ```c
-tm_status tm_set (struct tm *dt, [tm_predefined_instant instant = TM_NOW], [const char* wallclock = TM_REF_LOCALTIME])
-tm_status tm_set (struct tm *dt, int year, tm_month month, int day, int hour, int min, int sec, [const char* wallclock = TM_REF_LOCALTIME], [tm_wallclock clock = TM_ST_OVER_DST])
+tm_status tm_set (struct tm *dt, [tm_predefined_instant instant = TM_NOW], [const char* wallclock = TM_REF_LOCALTIME]);
+tm_status tm_set (struct tm *dt, int year, tm_month month, int day, int hour, int min, int sec, [const char* wallclock = TM_REF_LOCALTIME], [tm_wallclock clock = TM_ST_OVER_DST]);
 ```
 Arguments between brackets are *optional*. The default value is used if they are ommitted.
 
@@ -186,10 +186,10 @@ It returns `TM_OK` otherwise.
 Once an instant has been initialized, the referential used to represent it can be tested with `tm_isdefinedinutc`, `tm_isdefinedinsystemtime`, `tm_isdefinedinlocaltime`
 or `tm_isdefinedinwallclock` (which takes an extra argument for the wallclock against which to apply the test).
 ```c
-int tm_isdefinedinutc (struct tm *dt)
-int tm_isdefinedinsystemtime (struct tm *dt)
-int tm_isdefinedinlocaltime (struct tm *dt)
-int tm_isdefinedinwallclock (struct tm *dt, const char* wallclock)
+int tm_isdefinedinutc (struct tm *dt);
+int tm_isdefinedinsystemtime (struct tm *dt);
+int tm_isdefinedinlocaltime (struct tm *dt);
+int tm_isdefinedinwallclock (struct tm *dt, const char* wallclock);
 ```
 Those functions return 1 or 0. Note that thoses functions are not exclusive: several can retiurn 1 (if the local time is defined as the system time which is set to UTC for instance).
 
@@ -240,7 +240,7 @@ Once an instant has been initialized, it can be represented either in UTC, local
 
 The user can switch alternately between referentials by a call to `tm_changetowallclock`.
 ```c
-tm_status tm_changetowallclock (struct tm *date, const char* wallclock)
+tm_status tm_changetowallclock (struct tm *date, const char* wallclock);
 ```
 The parameter `wallclock` indicates which time referential to use and can be either:
   - `TM_REF_LOCALTIME` for local time referential ;
@@ -252,37 +252,37 @@ This call *does affect* arithmetic operations on days, as they depend on dayligh
 
 Short cuts can be used to switch to TM_REF_UTC, TM_REF_SYSTEMTIME or TM_REF_LOCALTIME.
 ```c
-tm_status tm_changetoutc (struct tm *date)
-tm_status tm_changetosystemtime (struct tm *date)
-tm_status tm_changetolocaltime (struct tm *date)
+tm_status tm_changetoutc (struct tm *date);
+tm_status tm_changetosystemtime (struct tm *date);
+tm_status tm_changetolocaltime (struct tm *date);
 ```
 The current wallclock used to represent a date and time can be checked with (self explanatory) function:
 ```c
-const char *tm_getwallclock (struct tm date)
-int tm_isdefinedinwallclock (struct tm, const char *)
-int tm_isdefinedinutc (struct tm)
-int tm_isdefinedinsystemtime (struct tm)
-int tm_isdefinedinlocaltime (struct tm)
+const char *tm_getwallclock (struct tm date);
+int tm_isdefinedinwallclock (struct tm, const char *);
+int tm_isdefinedinutc (struct tm);
+int tm_isdefinedinsystemtime (struct tm);
+int tm_isdefinedinlocaltime (struct tm);
 ```
 ## Date and time properties
 
 Date and time properties can be accessed through several functions.
 They take one argument of type `struct tm`. 
 ```c
-int tm_getyear (struct tm date)
-tm_month tm_getmonth (struct tm date)
-int tm_getday (struct tm date)
-int tm_gethour (struct tm date)
-int tm_getminute (struct tm date)
-int tm_getsecond (struct tm date)
+int tm_getyear (struct tm date);
+tm_month tm_getmonth (struct tm date);
+int tm_getday (struct tm date);
+int tm_gethour (struct tm date);
+int tm_getminute (struct tm date);
+int tm_getsecond (struct tm date);
 
-int tm_getdayofyear (struct tm date)
-tm_dayofweek tm_getdayofweek (struct tm date)
-int tm_getisoweek (struct tm date)
-int tm_getisoyear (struct tm date)
-int tm_getsecondsofday (struct tm date)
-int tm_getminutesofday (struct tm date)
-int tm_gethoursofday (struct tm date)
+int tm_getdayofyear (struct tm date);
+tm_dayofweek tm_getdayofweek (struct tm date);
+int tm_getisoweek (struct tm date);
+int tm_getisoyear (struct tm date);
+int tm_getsecondsofday (struct tm date);
+int tm_getminutesofday (struct tm date);
+int tm_gethoursofday (struct tm date);
 
 int tm_getutcoffset (struct tm date);   // In seconds
 int tm_isdaylightsavingtimeineffect (struct tm date);
@@ -315,10 +315,10 @@ Dates can be converted into strings (for display purpose).
 
 Dedicated functions format the date and time `dt` according to regional settings and places the result in the character array s of size max:
 ```c
-tm_status tm_dateintostring (struct tm dt, size_t max, char *str)
-tm_status tm_timeintostring (struct tm dt, size_t max, char *str)
-tm_status tm_tostring (struct tm dt, size_t max, char *str)
-tm_status tm_toiso8601 (struct tm dt, size_t max, char *str, [int separator = 0])
+tm_status tm_dateintostring (struct tm dt, size_t max, char *str);
+tm_status tm_timeintostring (struct tm dt, size_t max, char *str);
+tm_status tm_tostring (struct tm dt, size_t max, char *str);
+tm_status tm_toiso8601 (struct tm dt, size_t max, char *str, [int separator = 0]);
 ```
 `max` is the size of `str`, including the terminating null byte.
 `separator`, optional, is either 0 (default value) or 1 whether separators are expected within date and time (*YYYYMMDD*T*hhmmss* or *YYYY-MM-DD*T*hh:mm:ss* respectively).
@@ -342,12 +342,12 @@ str[strftime (str, sizeof (str) / sizeof (*str), "%X%%", dt) - 1] = dc ? (dst ? 
 
 Signatures are:
 ```c
-tm_status tm_setdatefromstring (struct tm *dt, const char *text, const char *wallclock, [tm_wallclocksetting = TM_ST_OVER_DST]) 
-tm_status tm_settimefromstring (struct tm *dt, const char *text, const char *wallclock, [tm_wallclocksetting = TM_ST_OVER_DST]) 
+tm_status tm_setdatefromstring (struct tm *dt, const char *text, const char *wallclock, [tm_wallclocksetting = TM_ST_OVER_DST]);
+tm_status tm_settimefromstring (struct tm *dt, const char *text, const char *wallclock, [tm_wallclocksetting = TM_ST_OVER_DST]);
 ```
 `tm_wallclocksetting` is usually not required but, if ever necessary, is used as for `tm_set`.
 ```c
-tm_status tm_setfromiso8601 (struct tm *dt, const char *str)
+tm_status tm_setfromiso8601 (struct tm *dt, const char *str);
 ```
 `tm_setfromiso8601` lets initialize a date and optionnaly time from a string formatted with regard to the ISO8601 standard.
 The resullting value of `dt` will be represented:
@@ -366,12 +366,12 @@ struct tm dtb = dta;
 
 ### Adding a duration to an instant
 ```c
-tm_status tm_addseconds (struct tm *date, long int nbSecs)
-tm_status tm_addminutes (struct tm *date, long int nbSecs)
-tm_status tm_addhours (struct tm *date, long int nbSecs)
-tm_status tm_adddays (struct tm *date, int nbDays)
-tm_status tm_addmonths (struct tm *date, int nbMonths)
-tm_status tm_addyears (struct tm *date, int nbYears)
+tm_status tm_addseconds (struct tm *date, long int nbSeconds);
+tm_status tm_addminutes (struct tm *date, long int nbMinute);
+tm_status tm_addhours (struct tm *date, long int nbHours);
+tm_status tm_adddays (struct tm *date, int nbDays);
+tm_status tm_addmonths (struct tm *date, int nbMonths);
+tm_status tm_addyears (struct tm *date, int nbYears);
 ```
 Those function take a pointer to an instant `struct tm` as first argument, and an integer (either positive or negative) as second argument.
 
@@ -389,13 +389,13 @@ They return TM_ERROR in case of overflow (date out of range), TM_OK otherwise.
 
 ### Substracting two instants
 ```c
-long int tm_diffseconds (struct tm start, struct tm stop)
-long int tm_diffminutes (struct tm start, struct tm stop)
-long int tm_diffhours (struct tm start, struct tm stop)
-int tm_diffdays (struct tm start, struct tm stop, [int *seconds])
-int tm_diffweeks (struct tm start, struct tm stop, [int *days, int *seconds])
-int tm_diffmonths (struct tm start, struct tm stop, [int *days, int *seconds])
-int tm_diffyears (struct tm start, struct tm stop, [int *months, int *days, int *seconds])
+long int tm_diffseconds (struct tm start, struct tm stop);
+long int tm_diffminutes (struct tm start, struct tm stop);
+long int tm_diffhours (struct tm start, struct tm stop);
+int tm_diffdays (struct tm start, struct tm stop, [int *seconds]);
+int tm_diffweeks (struct tm start, struct tm stop, [int *days, int *seconds]);
+int tm_diffmonths (struct tm start, struct tm stop, [int *days, int *seconds]);
+int tm_diffyears (struct tm start, struct tm stop, [int *months, int *days, int *seconds]);
 ```
 Those function take two pointers to an instant `struct tm` as firt arguments, and return an integer (either positive or negative). The last following arguments are optional.
 
@@ -527,39 +527,39 @@ Instants can be persisted in databases using those two functions for storing (`t
 Additional functions are available to manage calendar dates (without time of day):
 
 ```c
-tm_status dt_set (struct tm *dt)
-tm_status dt_set (struct tm *dt, int year, tm_month month, int day)
+tm_status dt_set (struct tm *dt, [const char *wallclock = TM_REF_LOCALTIME]);   // Initializes dt with the current date for the given timezone.
+tm_status dt_set (struct tm *dt, int year, tm_month month, int day);
 
 tm_status dt_tostring (struct tm dt, size_t max, char *str);
-tm_status dt_setfromstring (struct tm *dt, const char *text)
+tm_status dt_fromstring (struct tm *dt, const char *text);
 
-int dt_getyear (struct tm date) // On 4 digits
-tm_month dt_getmonth (struct tm date)
-int dt_getday (struct tm date)
-int dt_getdayofyear (struct tm date)  // Starting from 1
-tm_dayofweek dt_getdayofweek (struct tm date)
-int dt_getisoweek (struct tm date)
-int dt_getisoyear (struct tm date)
+int dt_getyear (struct tm date); // On 4 digits
+tm_month dt_getmonth (struct tm date);
+int dt_getday (struct tm date);
+int dt_getdayofyear (struct tm date);  // Starting from 1
+tm_dayofweek dt_getdayofweek (struct tm date);
+int dt_getisoweek (struct tm date);
+int dt_getisoyear (struct tm date);
 
-tm_status dt_adddays (struct tm *date, int nbDays)
-tm_status dt_addmonths (struct tm *date, int nbMonths)
-tm_status dt_addyears (struct tm *date, int nbYears)
+tm_status dt_adddays (struct tm *date, int nbDays);
+tm_status dt_addmonths (struct tm *date, int nbMonths);
+tm_status dt_addyears (struct tm *date, int nbYears);
 
-int dt_equals (struct tm a, struct tm b)
-int dt_compare (const void *dta, const void *dtb)
+int dt_equals (struct tm a, struct tm b);
+int dt_compare (const void *dta, const void *dtb);
 
-int dt_diffdays (struct tm start, struct tm stop)
-int dt_diffweeks (struct tm start, struct tm stop, [int *days])
-int dt_diffmonths (struct tm start, struct tm stop, [int *days])
-int dt_diffyears (struct tm start, struct tm stop, [int *months, int *days])
+int dt_diffdays (struct tm start, struct tm stop);
+int dt_diffweeks (struct tm start, struct tm stop, [int *days]);
+int dt_diffmonths (struct tm start, struct tm stop, [int *days]);
+int dt_diffyears (struct tm start, struct tm stop, [int *months, int *days]);
 
 int dt_diffcalendardays (struct tm start, struct tm stop);
 int dt_diffcalendarmonths (struct tm start, struct tm stop);
 int dt_diffcalendaryears (struct tm start, struct tm stop);
 int dt_diffisoyears (struct tm start, struct tm stop);
 
-int dt_tobinary (struct tm date)
-tm_status dt_frombinary(struct tm *date, int binary)
+int dt_tobinary (struct tm date);
+tm_status dt_frombinary(struct tm *date, int binary);
 ```
 
 # Unit testing
