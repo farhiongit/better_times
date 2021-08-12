@@ -188,12 +188,14 @@ tm_status tm_frombinary (struct tm *, time_t binary, const char *);
 #  define tm_frombinary(...) VFUNC (tm_frombinary, __VA_ARGS__)
 
 tm_status dt_tostring (struct tm dt, size_t max, char *str);
+tm_status dt_toiso8601 (struct tm dt, size_t max, char *str, int sep);
 #  define dt_set4(date, YYYY, MM, DD)             tm_make8(date, YYYY, MM, DD, 0, 0, 0, TM_REF_UTC)
 tm_status dt_make_ir (struct tm *date, const char* wc);
 #  define dt_set2(date, rep)                      dt_make_ir (date, rep)
 #  define dt_set1(date)                           dt_set2 (date, TM_REF_LOCALTIME)
 #  define dt_set(...)                             VFUNC (dt_set, __VA_ARGS__)
-#  define dt_fromstring(date, text)            tm_setdatefromstring(date, text, TM_REF_UTC)
+#  define dt_setfromstring(date, text)            tm_setdatefromstring(date, text, TM_REF_UTC)
+tm_status dt_setfromiso8601 (struct tm *dt, char *str);
 #  define dt_equals                               tm_equals
 #  define dt_getyear                              tm_getyear    // On 4 digits
 #  define dt_getmonth                             tm_getmonth

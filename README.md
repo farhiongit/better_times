@@ -524,14 +524,20 @@ Instants can be persisted in databases using those two functions for storing (`t
 
 ## Dates only
 
-Additional functions are available to manage calendar dates (without time of day):
+Additional functions are available to manage calendar dates (without time of day).
+Those calendar dates are absolute dates (New year's Eve 2018, 4th of July 2011), without any reference to timezone.
+
+Note: if a period, one day long, localized in a given country and timezone, is needed, `tm_set` and `tm_trimtime` should be used to set the beginning of that whole day ;
+the end (excluded) of that day can then be fetched using `tm_adddays (dt, 1)`.
 
 ```c
 tm_status dt_set (struct tm *dt, [const char *wallclock = TM_REF_LOCALTIME]);   // Initializes dt with the current date for the given timezone.
 tm_status dt_set (struct tm *dt, int year, tm_month month, int day);
 
 tm_status dt_tostring (struct tm dt, size_t max, char *str);
-tm_status dt_fromstring (struct tm *dt, const char *text);
+tm_status dt_toiso8601 (struct tm dt, size_t max, char *str, int sep);          // Separator '-' is used if sep is set
+tm_status dt_setfromstring (struct tm *dt, const char *text);
+tm_status dt_setfromiso8601 (struct tm *dt, char *str);
 
 int dt_getyear (struct tm date); // On 4 digits
 tm_month dt_getmonth (struct tm date);

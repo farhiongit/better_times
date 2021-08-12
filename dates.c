@@ -736,6 +736,24 @@ dt_tostring (struct tm dt, size_t max, char *str)
 }
 
 tm_status
+dt_toiso8601 (struct tm dt, size_t max, char *str, int sep)
+{
+  if (sep)
+    return tm_tostring_fmt (dt, max, str, "%Y-%m-%d");
+  else
+    return tm_tostring_fmt (dt, max, str, "%Y%m%d");
+}
+
+tm_status dt_setfromiso8601 (struct tm *dt, char *str)
+{
+  if (tm_setfromiso8601 (dt, str) == TM_ERROR)
+    return TM_ERROR;
+
+  dt->tm_zone = tm_getregisteredwallclock (TM_REF_UTC, 0);
+  return TM_OK;
+}
+
+tm_status
 dt_make_ir (struct tm *date, const char* wc)
 {
   if (tm_make_ir (date, TM_TODAY, wc) == TM_ERROR)
