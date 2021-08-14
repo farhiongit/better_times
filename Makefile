@@ -7,16 +7,12 @@ DEBUG = -g -DDEBUG
 CFLAGS = $(DEBUG) $(PROFILE) $(WARNINGS) $(COMPILE) $(PROC_OPT)
 
 .PHONY: all
-all: datesTU libtm.a run_tu
+all: libtm.a run_tu
 
 dates.o: dates.c dates.h
 
 libtm.a: dates.o
 	ar rcs "$@" $^
-
-datesTU: LDLIBS += -ltm -lm -lpthread
-datesTU: LDFLAGS  = -L.
-datesTU: libtm.a
 
 dates_tu_check: LDLIBS += -lpthread -lcheck -ltm -lm # -lrt
 dates_tu_check: LDFLAGS += -L/usr/lib/llvm-6.0/lib -L. # -lprofile_rt
