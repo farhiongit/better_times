@@ -528,7 +528,7 @@ Additional functions are available to manage calendar dates (without time of day
 Those calendar dates are absolute dates (New year's Eve 2018, 4th of July 2011), without any reference to timezone.
 
 Note: if a period, one day long, localized in a given country and timezone, is needed, `tm_set` and `tm_trimtime` should be used to set the beginning of that whole day ;
-the end (excluded) of that day can then be fetched using `tm_adddays (dt, 1)`.
+the end (excluded) of that day can then be fetched using `tm_adddays (&dt, 1)`.
 
 ```c
 tm_status dt_set (struct tm *dt, [const char *wallclock = TM_REF_LOCALTIME]);   // Initializes dt with the current date for the given timezone.

@@ -14,16 +14,32 @@
 
 /*************** INITIALISATION *************************/
 
+static locale_t locale;
+// A French seating in Italy:
+static const char *Spokenlanguage = "fr_FR.utf8";       // The user spoken language: French language, as spoken in France
+static const char *Wallclock = "Europe/Rome";   // The user timezone: Italy
 /// Done once for all tests
+static void
+unckecked_setup (void)
+{
+  if ((locale = newlocale (LC_ALL_MASK, Spokenlanguage, 0)))
+    uselocale (locale);         // uselocale is MT-Safe (better than setlocale which is MT-Unsafe const:locale env)
+  ck_assert (locale);
+}
+
 static void
 unckecked_setup_is_TZ_owner (void)
 {
+  unckecked_setup ();
+
   tm_is_TZ_owner = 1;
 }
 
 static void
 unckecked_setup_is_not_TZ_owner (void)
 {
+  unckecked_setup ();
+
   tm_is_TZ_owner = 0;
 }
 
@@ -31,13 +47,15 @@ unckecked_setup_is_not_TZ_owner (void)
 static void
 unckecked_teardown (void)
 {
+  if (locale)
+    freelocale (locale);
 }
 
 /// Done once for every test
 static void
 ckecked_setup (void)
 {
-  tm_setlocalwallclock ("Europe/Paris");
+  ck_assert (tm_setlocalwallclock (Wallclock) == TM_OK);
 }
 
 /// Done once for every test
@@ -894,13 +912,14 @@ START_TEST (tu_moon_walk)
   ck_assert (tm_getutcoffset (moon_walk) == 0);
   //tm_print (moon_walk);
 
+  // TZ='Europe/Rome' date --date='TZ="UTC" 1969-07-21 02:56:00' +'%Y-%m-%d %H:%M:%S' returns '1969-07-21 04:56:00'
   tm_changetowallclock (&moon_walk, TM_REF_LOCALTIME);
-  ck_assert (tm_gethour (moon_walk) == 3);      // in Paris
-  ck_assert (tm_getutcoffset (moon_walk) == 3600 * 1);
-  ck_assert (tm_isdaylightsavingtimeineffect (moon_walk) == 0); // There were nno DST in Paris by that time...
+  ck_assert (tm_gethour (moon_walk) == 4);      // in Rome
+  ck_assert (tm_getutcoffset (moon_walk) == 3600 * 2);
+  ck_assert (tm_isdaylightsavingtimeineffect (moon_walk) == 1);
 
+  // TZ='Europe/Chisinau' date --date='TZ="UTC" 1969-07-21 02:56:00' +'%Y-%m-%d %H:%M:%S' returns '1969-07-21 05:56:00'
   tm_changetowallclock (&moon_walk, "Europe/Chisinau");
-
   // Moon walk time in Moldova: 1969-07-21 05:56:00 +03:00
   ck_assert (tm_getyear (moon_walk) == 1969);
   ck_assert (tm_getmonth (moon_walk) == TM_JULY);
@@ -911,8 +930,8 @@ START_TEST (tu_moon_walk)
   ck_assert (tm_isdaylightsavingtimeineffect (moon_walk) == 0);
   ck_assert (tm_getutcoffset (moon_walk) == 3600 * 3);
 
+  // TZ='Europe/Paris' date --date='TZ="UTC" 1969-07-21 02:56:00' +'%Y-%m-%d %H:%M:%S' returns '1969-07-21 03:56:00'
   tm_changetowallclock (&moon_walk, "Europe/Paris");
-
   // Moon walk time in Paris: 1969-07-21 03:56:00 +01:00
   ck_assert (tm_getyear (moon_walk) == 1969);
   ck_assert (tm_getmonth (moon_walk) == TM_JULY);
@@ -920,7 +939,8 @@ START_TEST (tu_moon_walk)
   ck_assert (tm_gethour (moon_walk) == 3);
   ck_assert (tm_getminute (moon_walk) == 56);
   ck_assert (tm_getsecond (moon_walk) == 0);
-  ck_assert (tm_isdaylightsavingtimeineffect (moon_walk) == 0);
+  ck_assert (tm_getutcoffset (moon_walk) == 3600 * 1);
+  ck_assert (tm_isdaylightsavingtimeineffect (moon_walk) == 0); // There were no DST in Paris by that time...
   ck_assert (tm_getutcoffset (moon_walk) == 3600 * 1);
 
 #ifdef tm_settimezone_IS_VALID
@@ -1197,7 +1217,9 @@ START_TEST (tu_iso8601)
 END_TEST
 START_TEST (tu_perf)
 {
+  ck_assert (tm_setlocalwallclock ("Europe/Dublin") == TM_OK);
   struct tm dt;
+  ck_assert (tm_set (&dt) == TM_OK);
   for (size_t i = 200000; i; i--)
     tm_set (&dt);
 }
@@ -1241,8 +1263,6 @@ END_TEST
 static Suite *
 mm_suite (int is_TZ_owner)
 {
-  setlocale (LC_ALL, "");
-
   char *case_name;
   SFun unckecked_setup;
   if (!is_TZ_owner)
@@ -1306,12 +1326,10 @@ int
 main (void)
 {
   // Required localization for designed unit tests:
-  setenv ("LC_ALL", "fr_FR.utf8", 1);   // French language, in France
-
-  setlocale (LC_ALL, "");
-
-  Suite *s = mm_suite (0);
-  SRunner *sr = srunner_create (s);
+  SRunner *sr = srunner_create (0);
+  Suite *s;
+  s = mm_suite (0);
+  srunner_add_suite (sr, s);
   s = mm_suite (1);
   srunner_add_suite (sr, s);
 

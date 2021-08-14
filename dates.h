@@ -190,7 +190,7 @@ tm_status tm_frombinary (struct tm *, time_t binary, const char *);
 tm_status dt_tostring (struct tm dt, size_t max, char *str);
 tm_status dt_toiso8601 (struct tm dt, size_t max, char *str, int sep);
 #  define dt_set4(date, YYYY, MM, DD)             tm_make8(date, YYYY, MM, DD, 0, 0, 0, TM_REF_UTC)
-tm_status dt_make_ir (struct tm *date, const char* wc);
+tm_status dt_make_ir (struct tm *date, const char *wc);
 #  define dt_set2(date, rep)                      dt_make_ir (date, rep)
 #  define dt_set1(date)                           dt_set2 (date, TM_REF_LOCALTIME)
 #  define dt_set(...)                             VFUNC (dt_set, __VA_ARGS__)

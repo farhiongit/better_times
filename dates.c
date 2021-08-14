@@ -163,13 +163,8 @@ tm_tzunset (const char *old_tz)
 {
   if (tm_is_TZ_owner)
     return;
-  char *tz = getenv ("TZ");
-  if (!old_tz && !tz)
-    return;
-  else if (!old_tz)
+  if (!old_tz)
     unsetenv ("TZ");
-  else if (tz && !strcmp (old_tz, tz))
-    return;
   else
     setenv ("TZ", old_tz, 1);
   tzset ();
@@ -178,7 +173,6 @@ tm_tzunset (const char *old_tz)
 static tm_status
 tm_tzset (const char *wc, const char * *p_old_tz)
 {
-  tm_systemtimezone ();
   char *old_tz = getenv ("TZ");
   if (p_old_tz)
     *p_old_tz = old_tz;
@@ -744,7 +738,8 @@ dt_toiso8601 (struct tm dt, size_t max, char *str, int sep)
     return tm_tostring_fmt (dt, max, str, "%Y%m%d");
 }
 
-tm_status dt_setfromiso8601 (struct tm *dt, char *str)
+tm_status
+dt_setfromiso8601 (struct tm *dt, char *str)
 {
   if (tm_setfromiso8601 (dt, str) == TM_ERROR)
     return TM_ERROR;
@@ -754,7 +749,7 @@ tm_status dt_setfromiso8601 (struct tm *dt, char *str)
 }
 
 tm_status
-dt_make_ir (struct tm *date, const char* wc)
+dt_make_ir (struct tm *date, const char *wc)
 {
   if (tm_make_ir (date, TM_TODAY, wc) == TM_ERROR)
     return TM_ERROR;
