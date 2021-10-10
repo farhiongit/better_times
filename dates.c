@@ -134,7 +134,7 @@ tm_getregisteredwallclock (const char *wc, int add)
   if (nb_registered_wallclocks == WALLCLOCK_MAX_NB || strlen (wc) >= WALLCLOCK_MAX_LENGTH)
   {
     errno = ENOMEM;
-    perror (0);
+    perror ("Wallclock registration");
     pthread_mutex_unlock (&wallclock_mutex);
     return tm_systemtimezone ();
   }
@@ -201,7 +201,11 @@ tm_tzset (const char *wc, const char * *p_old_tz)
   if (errno && wc && strlen (wc))       // wc = "" is not an error
   {
     tm_unregisterwallclock (wc);
-    tm_tzunset (old_tz);
+    if (!old_tz)
+      unsetenv ("TZ");
+    else
+      setenv ("TZ", old_tz, 1);
+    tzset ();
     ret = TM_ERROR;
   }
   else
@@ -258,7 +262,7 @@ tm_islocalwallclock (const char *wc)
 /// @param [in,out] date Pointer to broken-down time structure
 /// @returns Absolute calendar time
 /// @remark Calls mktime. The tm_normalizetolocal() function is equivalent to the POSIX standard function mktime()
-static tm_status                /* might set errno to EOVERFLOW */
+static tm_status                /* might set errno to EINVAL */
 tm_normalize (struct tm *tm, time_t * t)
 {
   /* (mktime man page)
@@ -282,6 +286,7 @@ tm_normalize (struct tm *tm, time_t * t)
      Calling mktime() also sets the external variable tzname with information about the current timezone.
    */
 
+  struct tm oldtm = *tm;
   const char *wc = tm->tm_zone;
   pthread_mutex_lock (&tzset_mutex);
   const char *old_tz;
@@ -294,11 +299,12 @@ tm_normalize (struct tm *tm, time_t * t)
   int saveerrno = errno;
   errno = 0;
   // May apply daylight saving if tm_isdst is not negative before function call:
-  time_t ret = mktime (tm);     // time syscall, calls tzset ; if structure members are outside, their valid interval, they will be normalized.
+  time_t ret = mktime (tm);     // time syscall, calls tzset ; if structure members are outside their valid interval, they will be normalized.
   if (errno)
   {
     tm_tzunset (old_tz);
     pthread_mutex_unlock (&tzset_mutex);
+    *tm = oldtm;
     return TM_ERROR;
   }
 
@@ -306,7 +312,7 @@ tm_normalize (struct tm *tm, time_t * t)
   pthread_mutex_unlock (&tzset_mutex);
   tm->tm_zone = wc;
   if (tm->tm_year + 1900 + 1 < tm->tm_year)
-    return (errno = EOVERFLOW), TM_ERROR;
+    return (*tm = oldtm), (errno = EINVAL), TM_ERROR;
   if (t)
     *t = ret;
   errno = saveerrno;
@@ -775,7 +781,7 @@ tm_toutcrepresentation (struct tm *date)
       return TM_OK;
     }
     else
-      return (errno = EOVERFLOW), TM_ERROR;
+      return (errno = EINVAL), TM_ERROR;
   }
   else
     return TM_OK;
@@ -807,11 +813,11 @@ tm_totimezonerepresentation (struct tm *date, const char *rep)
     {
       tm_tzunset (old_tz);
       pthread_mutex_unlock (&tzset_mutex);
-      return (errno = EOVERFLOW), TM_ERROR;
+      return (errno = EINVAL), TM_ERROR;
     }
   }
   else
-    return (errno = EOVERFLOW), TM_ERROR;
+    return (errno = EINVAL), TM_ERROR;
 }
 
 // wc should conform to format accepted by tzset (see man tzset)
@@ -837,7 +843,7 @@ tm_getdaysinyear (int year)
       tm_set (&fin, year + 1, TM_JANUARY, 1, 0, 0, 0) == TM_OK)
     return tm_diffcalendardays (debut, fin);
   else
-    return 0;
+    return (errno = EINVAL), 0;
 }
 
 int
@@ -855,7 +861,7 @@ tm_getweeksinisoyear (int isoyear)
 
   if (tm_make_dtrc (&date, isoyear + 1, TM_JANUARY, 4, 0, 0, 0, TM_REF_LOCALTIME, TM_ST_OVER_DST) == TM_ERROR
       || tm_adddays (&date, -7) == TM_ERROR)
-    return 0;
+    return (errno = EINVAL), 0;
 
   return tm_getisoweek (date);
 }
@@ -868,11 +874,11 @@ tm_getdaysinmonth (int year, tm_month month)
   struct tm date;
 
   if (tm_make_dtrc (&date, year, month, 1, 0, 0, 0, TM_REF_LOCALTIME, TM_ST_OVER_DST) == TM_ERROR)
-    return 0;
+    return (errno = EINVAL), 0;
 
   ret -= tm_getdayofyear (date);
   if (tm_addmonths (&date, 1) == TM_ERROR || tm_adddays (&date, -1) == TM_ERROR)
-    return 0;
+    return (errno = EINVAL), 0;
   ret += tm_getdayofyear (date);
 
   return ret;
@@ -887,13 +893,13 @@ tm_getsecondsinday (int year, tm_month month, int day, const char *rep)
   struct tm date;
 
   if (tm_make_dtrc (&date, year, month, day, 0, 0, 0, rep, TM_ST_OVER_DST) == TM_ERROR)
-    return 0;
+    return (errno = EINVAL), 0;
 
   time_t deb, fin;
 
   if (tm_normalize (&date, &deb) == TM_ERROR || tm_adddays (&date, 1) == TM_ERROR
       || tm_normalize (&date, &fin) == TM_ERROR)
-    return 0;
+    return (errno = EINVAL), 0;
 
   return (int) (fin - deb);
 }
@@ -907,7 +913,7 @@ tm_getfirstweekdayinmonth (int year, tm_month month, tm_dayofweek dow)
   struct tm date;
 
   if (tm_make_dtrc (&date, year, month, 1, 0, 0, 0, TM_REF_LOCALTIME, TM_ST_OVER_DST) == TM_ERROR)
-    return 0;
+    return (errno = EINVAL), 0;
 
   return (dow - tm_getdayofweek (date) + 7) % 7 + 1;
 }
@@ -923,7 +929,7 @@ tm_getlastweekdayinmonth (int year, tm_month month, tm_dayofweek dow)
   int last = tm_getdaysinmonth (year, month);
 
   if (tm_make_dtrc (&date, year, month, last, 0, 0, 0, TM_REF_LOCALTIME, TM_ST_OVER_DST) == TM_ERROR)
-    return 0;
+    return (errno = EINVAL), 0;
 
   int diff = dow - tm_getdayofweek (date);
 
@@ -941,7 +947,7 @@ tm_getfirstweekdayinisoyear (int isoyear, tm_dayofweek dow)
   int ret = tm_getfirstweekdayinmonth (isoyear, TM_JANUARY, dow) + 7;
 
   if (tm_make_dtrc (&date, isoyear, TM_JANUARY, ret, 0, 0, 0, TM_REF_LOCALTIME, TM_ST_OVER_DST) == TM_ERROR)
-    return 0;
+    return (errno = EINVAL), 0;
 
   return ret + 7 - 7 * tm_getisoweek (date);
 }
@@ -966,7 +972,7 @@ int
 tm_getyear (struct tm date)
 {
   if (date.tm_year + 1900 < date.tm_year)
-    errno = EOVERFLOW;
+    return (errno = EINVAL), 0;
   return date.tm_year + 1900;
 }
 
@@ -1036,7 +1042,7 @@ tm_getisoyear (struct tm date)
   else
     isoyear = date.tm_year + 1900;
   if (isoyear < date.tm_year)
-    errno = EOVERFLOW;
+    errno = EINVAL;
   return isoyear;
 }
 
@@ -1085,6 +1091,11 @@ tm_addseconds (struct tm *date, long int nbSecs)
   time_t t0;
   if (tm_normalize (date, &t0) == TM_ERROR)
     return TM_ERROR;
+  if ((nbSecs > 0 && t0 + (time_t) nbSecs < t0) || (nbSecs < 0 && t0 + (time_t) nbSecs > t0))
+  {
+    errno = EOVERFLOW;
+    return TM_ERROR;
+  }
   t0 += nbSecs;
 
   if (tm_isdefinedinwallclock (*date, TM_REF_UTC))
@@ -1132,10 +1143,18 @@ tm_addseconds (struct tm *date, long int nbSecs)
 tm_status
 tm_adddays (struct tm *date, int nbDays)
 {
+  if ((nbDays > 0 && date->tm_mday + nbDays < date->tm_mday) || (nbDays < 0 && date->tm_mday + nbDays > date->tm_mday))
+  {
+    errno = EOVERFLOW;
+    return TM_ERROR;
+  }
   date->tm_mday += nbDays;
   date->tm_isdst = -1;          // Let timezone information and system databases define DST flag.
 
-  return tm_normalize (date, 0);
+  tm_status ret = tm_normalize (date, 0);
+  if (ret != TM_OK)
+    errno = EOVERFLOW;
+  return ret;
 }
 
 tm_status
@@ -1143,17 +1162,23 @@ tm_addmonths (struct tm *date, int nbMonths)
 {
   int mday = date->tm_mday;     // Day of the month (1-31)
 
+  if ((nbMonths > 0 && date->tm_mon + nbMonths < date->tm_mon)
+      || (nbMonths < 0 && date->tm_mon + nbMonths > date->tm_mon))
+  {
+    errno = EOVERFLOW;
+    return TM_ERROR;
+  }
   date->tm_mon += nbMonths;
   date->tm_isdst = -1;          // Let timezone information and system databases define DST flag.
 
   tm_status ret = tm_normalize (date, 0);
-
   if (ret == TM_OK && date->tm_mday != mday)    // Handles lasts days of month
   {
     date->tm_mday = 0;          // A 0 in tm_mday is interpreted as meaning the last day of the preceding month.
     ret = tm_normalize (date, 0);
   }
-
+  else
+    errno = EOVERFLOW;
   return ret;
 }
 

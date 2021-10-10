@@ -49,6 +49,7 @@ unckecked_teardown (void)
 {
   if (locale)
     freelocale (locale);
+  printf ("All done.\n");
 }
 
 /// Done once for every test
@@ -943,42 +944,6 @@ START_TEST (tu_moon_walk)
   ck_assert (tm_isdaylightsavingtimeineffect (moon_walk) == 0); // There were no DST in Paris by that time...
   ck_assert (tm_getutcoffset (moon_walk) == 3600 * 1);
 
-#ifdef tm_settimezone_IS_VALID
-  // Set local time to NYC
-  tm_settimezone ("America/New_York");
-  // tm_settimezone is not functional, due to linux limitations.
-  // moon_walk now behaves incoherently, as if it would have been set to July 21st, 3am (as previously), but in NYC local time, and without DST
-
-  ck_assert (tm_gethour (moon_walk) == 3);      // unchanged despite tm_settimezone
-  ck_assert (tm_getutcoffset (moon_walk) == 3600 * 1);  // unchanged despite tm_settimezone
-  ck_assert (tm_getday (moon_walk) == 21);      // unchanged despite tm_settimezone
-  ck_assert (tm_isdaylightsavingtimeineffect (moon_walk) == 0); // unchanged despite tm_settimezone
-  tm_changetowallclock (&moon_walk, TM_REF_UTC);
-  ck_assert (tm_getday (moon_walk) == 21);
-  ck_assert (tm_gethour (moon_walk) == 8);
-  tm_changetowallclock (&moon_walk, TM_REF_LOCALTIME);
-  ck_assert (tm_getutcoffset (moon_walk) == -4 * 3600);
-  ck_assert (tm_gethour (moon_walk) == 4);
-  ck_assert (tm_getday (moon_walk) == 21);
-  ck_assert (tm_isdaylightsavingtimeineffect (moon_walk) == 1);
-
-  ck_assert (y == 1969);
-  ck_assert (M == TM_JULY);
-  ck_assert (d == 21);
-  ck_assert (h == 3);
-  ck_assert (m == 56);
-  ck_assert (s == 0);
-  ck_assert (dst == 0);
-  ck_assert (utcoffset == 3600 * 1);
-
-  // Armstrong became the first person to step onto the lunar surface on July 20 at 22:56 NYC local time
-  ck_assert (tm_set (&moon_walk, 1969, TM_JULY, 20, 22, 56, 0, TM_REF_LOCALTIME) == TM_OK);
-  ck_assert (tm_getutcoffset (moon_walk) == -4 * 3600);
-  //tm_print (moon_walk);
-
-  ck_assert (tm_settimezone ("Europe/Sofia") == TM_OK);
-#endif
-
   tm_changetowallclock (&moon_walk, "Australia/Sydney");
 
   // Moon walk in Sydney: 1969-07-21 12:56:00 +10:00
@@ -988,11 +953,6 @@ START_TEST (tu_moon_walk)
   ck_assert (tm_gethour (moon_walk) == 12);
   ck_assert (tm_getminute (moon_walk) == 56);
   ck_assert (tm_getsecond (moon_walk) == 0);
-
-#ifdef tm_settimezone_IS_VALID
-  // Back to system timezone
-  tm_resettimezone ();
-#endif
 }
 
 END_TEST
@@ -1067,15 +1027,9 @@ START_TEST (tu_error)
   errno = 0;
   ck_assert ((tm_getfirstweekdayinisoyear (2000, 8), 1) && errno == EINVAL);
 
-  //struct tm min;
-  //ck_assert (tm_set (&min, -2147481748, 1, 1, 0, 0, 0, TM_REF_LOCALTIME) == TM_OK);
-  //tm_print (min);
   struct tm max;
   ck_assert (tm_set (&max, 2147483646, 12, 31, 23, 59, 59, TM_REF_UTC) == TM_OK);
-  //tm_print (max);
-
-  tm_set (&dt, TM_NOW, TM_REF_LOCALTIME);
-  ck_assert (tm_changetowallclock (&dt, TM_REF_UTC) == TM_OK);
+  tm_set (&dt, TM_NOW, TM_REF_UTC);
   for (int incr = 1000000; incr >= 1; incr /= 10)
   {
     errno = 0;
@@ -1098,11 +1052,11 @@ START_TEST (tu_error)
   for (struct tm d = dt; tm_addseconds (&d, 1) == TM_OK; dt = d);
   ck_assert (errno == EOVERFLOW);
   ck_assert (tm_equals (dt, max));
-  //tm_print (dt);
-  ck_assert (tm_changetowallclock (&dt, TM_REF_LOCALTIME) == TM_ERROR && errno == EOVERFLOW);
+  ck_assert (tm_changetowallclock (&dt, TM_REF_LOCALTIME) == TM_ERROR && errno == EINVAL);
 
-  tm_set (&dt, TM_NOW, TM_REF_UTC);
-  ck_assert (tm_changetowallclock (&dt, TM_REF_LOCALTIME) == TM_OK);
+  struct tm min;
+  ck_assert (tm_set (&min, -2147481748, 1, 1, 0, 0, 0, TM_REF_LOCALTIME) == TM_OK);
+  tm_set (&dt, TM_NOW, TM_REF_LOCALTIME);
   for (int incr = 1000000; incr >= 1; incr /= 10)
   {
     errno = 0;
@@ -1124,9 +1078,8 @@ START_TEST (tu_error)
   errno = 0;
   for (struct tm d = dt; tm_addseconds (&d, -1) == TM_OK; dt = d);
   ck_assert (errno == EOVERFLOW);
-  //ck_assert (tm_equals (dt, min));
-  //tm_print (dt);
-  ck_assert (tm_changetowallclock (&dt, TM_REF_UTC) == TM_ERROR && errno == EOVERFLOW);
+  ck_assert (tm_equals (dt, min));
+  ck_assert (tm_changetowallclock (&dt, TM_REF_UTC) == TM_ERROR && errno == EINVAL);
 }
 
 END_TEST
@@ -1161,6 +1114,7 @@ START_TEST (tu_date)
   ck_assert (dt_getday (control) == 19);
   ck_assert (dt_tostring (control, 0, 0));
   ck_assert (dt_toiso8601 (control, 0, 0, 1));
+  ck_assert (dt_toiso8601 (control, 0, 0, 0));
   ck_assert (dt_compare (&date, &control) < 0);
   ck_assert (dt_equals (date, control) == 0);
   ck_assert (dt_diffcalendaryears (date, control) == 11);
@@ -1230,6 +1184,7 @@ START_TEST (tu_localwallclock)
   struct tm dt_system, dt_paris, dt_tokyo, dt_santiago, dt_antartica;
 
   tm_setlocalwallclock ("Europe/Paris");
+  ck_assert (!strcmp (tm_getlocalwallclock (), "Europe/Paris"));
   tm_set (&dt_paris, 2021, 7, 5, 23, 45, 02);
   ck_assert (tm_getdayofweek (dt_paris) == TM_MONDAY);
   ck_assert (tm_isdefinedinlocaltime (dt_paris));
@@ -1255,6 +1210,88 @@ START_TEST (tu_localwallclock)
   tm_set (&dt_antartica, 2021, 7, 5, 23, 45, 02, "Antarctica/Davis");
   ck_assert (tm_isdefinedinwallclock (dt_antartica, "Antarctica/Davis"));
   ck_assert (tm_diffhours (dt_paris, dt_antartica) == -5);
+}
+
+END_TEST
+START_TEST (tu_coverage)
+{
+  struct tm dt;
+  ck_assert (tm_set (&dt, 2021, 7, 5, 23, 45, 02, "No/Where") == TM_ERROR);
+  ck_assert (tm_set (&dt, 2021, 7, 5, 23, 45, 02, "No/Where") == TM_ERROR);
+  ck_assert (tm_set (&dt, 2021, 7, 5, 23, 45, 02, "") == TM_ERROR);
+  ck_assert (tm_set (&dt, 2021, 7, 5, 23, 45, 02, "Europe/Paris") == TM_OK);
+  ck_assert (tm_changetowallclock (&dt, TM_REF_UTC) == TM_OK);
+  ck_assert (tm_changetowallclock (&dt, TM_REF_UTC) == TM_OK);
+  ck_assert (tm_set (&dt, TM_TODAY, "No/Where") == TM_ERROR);
+  ck_assert (tm_set (&dt, 2021, 7, 5, 23, 45, 02, "No/Where") == TM_ERROR);
+  ck_assert (tm_changetowallclock (&dt, "No/Where") == TM_ERROR);
+  ck_assert (tm_set (&dt, 2021, 7, 5, 23, 45, 02, "No/Where") == TM_ERROR);
+  ck_assert (tm_set (&dt, 2021, 7, 5, 23, 45, 02, "6th_continent") == TM_ERROR);
+  ck_assert (tm_set (&dt, 2021, 7, 5, 23, 45, 02, "Atlantic/Cape_Verde") == TM_OK);
+  ck_assert (tm_isdefinedinwallclock (dt, "Atlantic/Cape_Verde"));
+  ck_assert (!tm_isdefinedinwallclock (dt, "6th_continent"));
+  ck_assert (!tm_isdefinedinwallclock (dt, "Europe/Paris"));
+  char toolong[300] = { 0 };
+  for (size_t i = 0; i < sizeof (toolong) / sizeof (*toolong) - 1; i++)
+    toolong[i] = 'a';
+  errno = 0;
+  ck_assert (tm_set (&dt, 2021, 7, 5, 23, 45, 02, toolong) == TM_OK && errno == ENOMEM);
+  ck_assert (tm_setlocalwallclock (TM_REF_LOCALTIME) == TM_OK);
+  ck_assert (tm_setlocalwallclock ("6th_continent") == TM_ERROR);
+  ck_assert (tm_setlocalwallclock (TM_REF_UTC) == TM_OK);
+  ck_assert (tm_getlocalwallclock () == TM_REF_UTC);
+  ck_assert (tm_setlocalwallclock (0) == TM_OK);
+  ck_assert (tm_set (&dt, TM_TODAY, TM_REF_UNCHANGED) == TM_OK);
+  ck_assert (tm_set (&dt, -1) == TM_ERROR);
+  int max = INT_MAX;
+  ck_assert (tm_set (&dt, max + 1, 7, 5, 23, 45, 02) == TM_ERROR);
+  ck_assert (tm_set (&dt, 2001, 7, 5, 23, 45, 02, TM_REF_LOCALTIME, -1) == TM_ERROR);
+  ck_assert (tm_setdatefromstring (&dt, "15/09/2001") == TM_OK);
+  ck_assert (tm_setdatefromstring (&dt, "15/09/11") == TM_OK);
+  ck_assert (tm_setdatefromstring (&dt, "1999-02-25", "rfhzh") == TM_ERROR);
+  ck_assert (tm_setdatefromstring (&dt, "1999-02-25", TM_REF_LOCALTIME, TM_DST_OVER_ST) == TM_OK);
+  ck_assert (tm_setdatefromstring (&dt, "1999-02-25", TM_REF_LOCALTIME, -1) == TM_ERROR);
+  ck_assert (tm_settimefromstring (&dt, "00:00:00") == TM_OK);
+  ck_assert (tm_settimefromstring (&dt, "00:00:00", "rfhzh") == TM_ERROR);
+  ck_assert (tm_settimefromstring (&dt, "00:00:00", TM_REF_LOCALTIME, TM_DST_OVER_ST) == TM_OK);
+  ck_assert (tm_settimefromstring (&dt, "00:00:00", TM_REF_LOCALTIME, -1) == TM_ERROR);
+  ck_assert (tm_settimefromstring (&dt, "00:00:60") == TM_ERROR);
+  ck_assert (tm_setfromiso8601 (&dt, "abc") == TM_ERROR);
+  ck_assert (tm_setfromiso8601 (&dt, "20010823T24:00:00") == TM_OK);
+  ck_assert (tm_setfromiso8601 (&dt, "20010823T04:18:60") == TM_OK);
+  ck_assert (tm_setfromiso8601 (&dt, "20010823T04:18:60+02:00") == TM_OK);
+  ck_assert (tm_setfromiso8601 (&dt, "20010823T04:18:60+04:00") == TM_OK);
+  ck_assert (tm_setfromiso8601 (&dt, "20010229T04:18:20") == TM_ERROR);
+  ck_assert (dt_setfromiso8601 (&dt, "20010229") == TM_ERROR);
+  ck_assert (tm_getdaysinmonth (2021, 15) == 0);
+  ck_assert (tm_getsecondsinday (2021, 15, 35) == 0);
+  ck_assert (tm_getsecondsinday (2021, 11, 15, TM_REF_UNCHANGED) == 0);
+  ck_assert (tm_getfirstweekdayinmonth (2020, 2, 8) == 0);
+  ck_assert (tm_getfirstweekdayinmonth (2020, 22, 2) == 0);
+  ck_assert (tm_getlastweekdayinmonth (2020, 2, 8) == 0);
+  ck_assert (tm_getlastweekdayinmonth (2020, 22, 2) == 0);
+  ck_assert (tm_getfirstweekdayinisoyear (2020, 8) == 0);
+  ck_assert (tm_set (&dt, 2021, 7, 5, 23, 45, 02) == TM_OK);
+  ck_assert (tm_changetowallclock (&dt, "No/Where") == TM_ERROR);
+
+  struct tm debut, fin;
+  ck_assert (tm_set (&debut, 2000, 12, 12, 10, 10, 10) == TM_OK);
+  ck_assert (tm_set (&fin, 2000, 12, 12, 10, 10, 10) == TM_OK && tm_addmonths (&fin, 2) == TM_OK
+             && tm_addseconds (&fin, -1) == TM_OK);
+  ck_assert (tm_diffmonths (debut, fin) == 1);
+  ck_assert (tm_set (&fin, 2000, 12, 12, 0, 0, 0) == TM_OK && tm_addyears (&fin, -1) == TM_OK
+             && tm_adddays (&fin, -1) == TM_OK);
+  ck_assert (tm_diffcalendardays (debut, fin) == -367);
+  ck_assert (tm_diffdays (debut, fin) == -367);
+  ck_assert (tm_diffmonths (debut, fin) == -12);
+  ck_assert (tm_changetowallclock (&fin, TM_REF_UTC) == TM_OK);
+  ck_assert (tm_diffcalendardays (debut, fin) == 0 && errno == EINVAL);
+  ck_assert (tm_diffdays (debut, fin) == 0 && errno == EINVAL);
+  ck_assert (tm_diffyears (debut, fin) == 0 && errno == EINVAL);
+  ck_assert (tm_diffcalendaryears (debut, fin) == 0 && errno == EINVAL);
+  ck_assert (tm_diffcalendarmonths (debut, fin) == 0 && errno == EINVAL);
+  ck_assert (tm_diffisoyears (debut, fin) == 0 && errno == EINVAL);
+  ck_assert (tm_frombinary (&dt, 0, TM_REF_UNCHANGED) == TM_OK);
 }
 
 END_TEST
@@ -1310,10 +1347,11 @@ mm_suite (int is_TZ_owner)
   tcase_add_test (tc, tu_day_loop);
   tcase_add_test (tc, tu_beginingoftheday);
   tcase_add_test (tc, tu_weekday);
-  tcase_add_test (tc, tu_error);
   tcase_add_test (tc, tu_date);
   tcase_add_test (tc, tu_localwallclock);
   tcase_add_test (tc, tu_perf);
+  tcase_add_test (tc, tu_error);
+  tcase_add_test (tc, tu_coverage);
 
   suite_add_tcase (s, tc);
 
