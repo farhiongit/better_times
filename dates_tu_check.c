@@ -958,6 +958,7 @@ START_TEST (tu_moon_walk)
 END_TEST
 START_TEST (tu_weekday)
 {
+  ck_assert (tm_getdaysinmonth (2047, TM_MARCH) == 31);
   ck_assert (tm_getfirstweekdayinmonth (2017, TM_MARCH, TM_TUESDAY) == 7);
   ck_assert (tm_getfirstweekdayinmonth (2017, TM_MARCH, TM_SATURDAY) == 4);
 
@@ -1272,7 +1273,11 @@ START_TEST (tu_coverage)
   ck_assert (tm_getlastweekdayinmonth (2020, 22, 2) == 0);
   ck_assert (tm_getfirstweekdayinisoyear (2020, 8) == 0);
   ck_assert (tm_set (&dt, 2021, 7, 5, 23, 45, 02) == TM_OK);
+  ck_assert (tm_addseconds (&dt, LONG_MAX) == TM_ERROR && errno == EOVERFLOW);
+  ck_assert (tm_adddays (&dt, INT_MAX) == TM_ERROR && errno == EOVERFLOW);
+  ck_assert (tm_addmonths (&dt, INT_MAX) == TM_ERROR && errno == EOVERFLOW);
   ck_assert (tm_changetowallclock (&dt, "No/Where") == TM_ERROR);
+  ck_assert (tm_frombinary (&dt, 0, "No/Where") == TM_ERROR);
 
   struct tm debut, fin;
   ck_assert (tm_set (&debut, 2000, 12, 12, 10, 10, 10) == TM_OK);
@@ -1292,6 +1297,11 @@ START_TEST (tu_coverage)
   ck_assert (tm_diffcalendarmonths (debut, fin) == 0 && errno == EINVAL);
   ck_assert (tm_diffisoyears (debut, fin) == 0 && errno == EINVAL);
   ck_assert (tm_frombinary (&dt, 0, TM_REF_UNCHANGED) == TM_OK);
+  ck_assert (tm_getdaysinyear (INT_MAX) == 0 && errno == EINVAL);
+  ck_assert (tm_getweeksinisoyear (INT_MAX) == 0 && errno == EINVAL);
+  ck_assert (tm_getweeksinisoyear (INT_MAX - 1) == 0 && errno == EINVAL);
+  ck_assert (tm_getdaysinmonth (2147483646, 12) == 0 && errno == EINVAL);
+  ck_assert (tm_getsecondsinday (2147483646, 12, 31) == 0 && errno == EINVAL);
 }
 
 END_TEST

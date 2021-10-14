@@ -570,13 +570,15 @@ tm_status dt_frombinary(struct tm *date, int binary);
 
 # Unit testing
 
-The API has been extensively tested with unit tests are implemented in `dates_tu_check.c`.
+The API has been extensively tested with unit tests implemented in `dates_tu_check.c`.
 
 Check is used as the Unit Testing Framework for C (see [https://libcheck.github.io/check/](https://libcheck.github.io/check/)).
 
+[gcov](https://gcc.gnu.org/onlinedocs/gcc/Gcov.html) is used to ensure full coverage (97 %) of the code by the unit tests.
+
 # Examples
 
-Look at `dates_tu_check.c` and `datesTU.c` for examples of usage.
+Look at `dates_tu_check.c` for examples of usage.
 
 Use `Makefile` as an example for compilation.
 
@@ -588,8 +590,7 @@ Some principles have to be followed:
 
   - a date and time does not hold any format (not more than numeric values). A format is only needed for user input and display.
     It should never be used to store or transport dates and times.
-  - a date and time doed not hold any timezone (no more than a nuleric value holds a unit). A timezone is only needed for arithmetic, user input and display.
-    It should never be used to store or transport dates and times.
-  - Dates and times should only be stored or exchanged between systems in UTC.
+  - a date and time does not hold any timezone (no more than a numeric value holds a unit). A timezone is only needed for arithmetic, user input and display.
+    A timezone should not be used when storing or transporting dates and times: dates and times should only be stored or exchanged between systems in UTC.
 
 Have fun !

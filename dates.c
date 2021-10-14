@@ -859,7 +859,8 @@ tm_getweeksinisoyear (int isoyear)
 {
   struct tm date;
 
-  if (tm_make_dtrc (&date, isoyear + 1, TM_JANUARY, 4, 0, 0, 0, TM_REF_LOCALTIME, TM_ST_OVER_DST) == TM_ERROR
+  if (isoyear + 1 < isoyear
+      || tm_make_dtrc (&date, isoyear + 1, TM_JANUARY, 4, 0, 0, 0, TM_REF_LOCALTIME, TM_ST_OVER_DST) == TM_ERROR
       || tm_adddays (&date, -7) == TM_ERROR)
     return (errno = EINVAL), 0;
 
@@ -926,7 +927,12 @@ tm_getlastweekdayinmonth (int year, tm_month month, tm_dayofweek dow)
 
   struct tm date;
 
+  int savederrno = errno;
+  errno = 0;
   int last = tm_getdaysinmonth (year, month);
+  if (errno)
+    return 0;
+  errno = savederrno;
 
   if (tm_make_dtrc (&date, year, month, last, 0, 0, 0, TM_REF_LOCALTIME, TM_ST_OVER_DST) == TM_ERROR)
     return (errno = EINVAL), 0;
@@ -944,7 +950,12 @@ tm_getfirstweekdayinisoyear (int isoyear, tm_dayofweek dow)
 
   struct tm date;
 
+  int savederrno = errno;
+  errno = 0;
   int ret = tm_getfirstweekdayinmonth (isoyear, TM_JANUARY, dow) + 7;
+  if (errno)
+    return 0;
+  errno = savederrno;
 
   if (tm_make_dtrc (&date, isoyear, TM_JANUARY, ret, 0, 0, 0, TM_REF_LOCALTIME, TM_ST_OVER_DST) == TM_ERROR)
     return (errno = EINVAL), 0;
@@ -1177,7 +1188,7 @@ tm_addmonths (struct tm *date, int nbMonths)
     date->tm_mday = 0;          // A 0 in tm_mday is interpreted as meaning the last day of the preceding month.
     ret = tm_normalize (date, 0);
   }
-  else
+  else if (ret == TM_ERROR)
     errno = EOVERFLOW;
   return ret;
 }
