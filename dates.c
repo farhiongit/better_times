@@ -147,6 +147,8 @@ tm_getregisteredwallclock (const char *wc, int add)
 
   if (nb_registered_wallclocks == WALLCLOCK_MAX_NB || strlen (wc) >= WALLCLOCK_MAX_LENGTH)
   {
+    fprintf (stderr, "%zuth wallclock '%s' not registered ", nb_registered_wallclocks, wc);
+    fprintf (stderr, "(%s).\n", nb_registered_wallclocks == WALLCLOCK_MAX_NB ? "too many" : "too long");
     errno = ENOMEM;
     perror ("Wallclock registration");
     pthread_mutex_unlock (&wallclock_mutex);
@@ -611,7 +613,7 @@ tm_setfromiso8601 (struct tm *dt, char *str)
   int annee, mois, jour, heure, min, sec, gsign, gheure, gmin;
   int fsec;
   const char *wc;
-  heure = min = sec = fsec = gheure = gmin = 0;
+  gsign = annee = mois = jour = heure = min = sec = fsec = gheure = gmin = 0;
   const size_t UTCOFFSET = 14;  // This hard-coded value depend on the variable regex.
   const size_t UTCOFFSETSIGN = 16;      // This hard-coded value depend on the variable regex.
   if (pmatch[UTCOFFSET].rm_so < 0 || pmatch[UTCOFFSET].rm_so >= pmatch[UTCOFFSET].rm_eo)        // no UTC offset information

@@ -1,4 +1,3 @@
-
 /** @file dates.h
  * All functions are Multi Thread safe (MT-Safe env, see attributes(7)), safe to call in the presence of other threads), unless specified.
  */
@@ -57,10 +56,10 @@ typedef enum
 } tm_month;
 
 // Daylight saving time automatic management modes
-typedef enum
+typedef enum                    // Numbering compliant with tm_isdaylightsavingtimeineffect
 {
-  TM_ST_OVER_DST,               // Favor standard time during summer to winter change
-  TM_DST_OVER_ST,               // Favor daylight saving time during summer to winter change
+  TM_ST_OVER_DST = 0,           // Favor standard time during summer to winter change
+  TM_DST_OVER_ST = 1,           // Favor daylight saving time during summer to winter change
 } tm_time_precedence;
 
 typedef enum
